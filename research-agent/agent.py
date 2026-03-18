@@ -1,17 +1,10 @@
-import os
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from tools import write_report, web_search, read_url
 from langgraph.checkpoint.memory import MemorySaver
 from config import settings, SYSTEM_PROMPT
 
-
-# Передаємо ключ із Settings у середовище для LangChain/OpenAI
-os.environ["OPENAI_API_KEY"] = settings.api_key.get_secret_value()
-
-
-model = init_chat_model(settings.model_name)
-
+model = init_chat_model(settings.model_name, api_key=settings.api_key.get_secret_value())
 
 tools = [write_report, web_search, read_url]
 

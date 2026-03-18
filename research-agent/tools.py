@@ -23,6 +23,12 @@ def _emit(event: str, **payload: Any) -> None:
         # Allows tools to be called outside LangGraph during local testing
         pass
 
+def _truncate_text(text: str, max_length: int) -> str:
+    """Trim text to a safe length for LLM context."""
+    text = (text or "").strip()
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - 3].rstrip() + "..."
 
 def _is_valid_url(url: str) -> bool:
     """Перевіряє, що URL має коректну схему та хост."""
@@ -31,14 +37,6 @@ def _is_valid_url(url: str) -> bool:
         return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
     except Exception:
         return False
-
-def _is_valid_url(url: str) -> bool:
-    try:
-        parsed = urlparse(url.strip())
-        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
-    except Exception:
-        return False
-
 
 @tool
 def read_url(url: str) -> str:
@@ -73,7 +71,7 @@ def read_url(url: str) -> str:
         if len(text) > settings.max_url_content_length:
             text = text[:settings.max_url_content_length] + "\n\n[TRUNCATED]"
 
-        _emit("tool_done", tool="read_url", url=url, chars=len(content))
+        _emit("tool_done", tool="read_url", url=url, chars=len(text))
         return text
 
     except Exception as e:
@@ -96,8 +94,10 @@ def web_search(query: str) -> List[Dict[str, str]]:
     The tool returns search-result snippets, not full page content.
     """
     _emit("tool_start", tool="web_search", query=query)
+
     query = query.strip()
     if not query:
+        _emit("tool_done", tool="web_search", query=query, results_count=0)
         return []
 
     try:
@@ -109,19 +109,22 @@ def web_search(query: str) -> List[Dict[str, str]]:
             {
                 "title": "Search error",
                 "url": "",
-                "snippet": f"DuckDuckGo search failed: {str(e)}",
+                "snippet": _truncate_text(
+                    f"DuckDuckGo search failed: {str(e)}",
+                    MAX_SNIPPET_LENGTH,
+                ),
             }
         ]
 
     results: List[Dict[str, str]] = []
 
-    for item in raw_results:
+    for item in raw_results[: settings.max_search_results]:
         if not isinstance(item, dict):
             continue
 
-        title = str(item.get("title") or "").strip()
+        title = _truncate_text(str(item.get("title") or ""), settings.max_search_title_length)
         url = str(item.get("href") or "").strip()
-        snippet = str(item.get("body") or "").strip()
+        snippet = _truncate_text(str(item.get("body") or ""), settings.max_search_snippet_length)
 
         if not (title or url or snippet):
             continue
@@ -133,6 +136,7 @@ def web_search(query: str) -> List[Dict[str, str]]:
                 "snippet": snippet,
             }
         )
+
     _emit("tool_done", tool="web_search", query=query, results_count=len(results))
     return results
 

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     max_url_content_length: int = 5000
     output_dir: str = "output"
     max_iterations: int = 10
+    max_search_title_length: int = 1000
+    max_search_snippet_length: int = 3000
 
     model_config = SettingsConfigDict(
         env_file=".env",
