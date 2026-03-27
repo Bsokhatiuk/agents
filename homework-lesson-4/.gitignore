@@ -3,4 +3,12 @@ __pycache__/
 *.pyc
 .idea/
 .venv/
+# Jupyter notebooks
+*.ipynb
 
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# nbconvert outputs
+*.nbconvert.ipynb

@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     api_key: SecretStr = Field(validation_alias="OPENAI_API_KEY")
-    model_name: str = "openai:gpt-5.2"
+    model_name: str = "openai:gpt-5.4"
 
     max_search_results: int = 5
     max_url_content_length: int = 5000
